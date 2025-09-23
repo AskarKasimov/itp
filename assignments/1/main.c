@@ -12,9 +12,10 @@ int is_valid_number(const char *token, int *out_value) {
     errno = 0;
     // конвертация
     int val = strtol(token, &endptr, 10);
-    // вся строка должна быть числом
-    if (*endptr != '\0') {
-        return 0; // есть лишние символы
+
+    // проверка на фаззинг строками вмместо чисел
+    if (*endptr != '\0' && *endptr != '\n') {
+        return 0;
     }
 
     // проверка на переполнение(??)
