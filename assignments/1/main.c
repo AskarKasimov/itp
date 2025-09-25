@@ -2,42 +2,59 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <limits.h>
 #include <errno.h>
 
-long long is_valid_number(const char *token, long long *out_value)
+int is_valid_number(const char *token, long long *out_value)
 {
-    if (token == NULL || *token == '\0')
+    // функция парса строки в число
+    if (!token || !*token)
         return 0;
+
     char *endptr;
     errno = 0;
-    // конвертация
     long long val = strtoll(token, &endptr, 10);
 
-    // проверка на фаззинг строками вмместо чисел
-    if (*endptr != '\0' && *endptr != '\n')
-    {
+    if (errno == ERANGE || *endptr != '\0')
         return 0;
-    }
-
-    // проверка на переполнение(??)
-    if (val < LLONG_MIN || val > LLONG_MAX)
-    {
-        return 0;
-    }
-    // ошибка strtol
-    if (errno == ERANGE)
-    {
-        return 0;
-    }
 
     if (out_value)
-    {
-        // записываю по указателю
-        *out_value = (long long)val;
-    }
-    // true, если всё ок, т.е. значение лежит по указанию
+        *out_value = val;
     return 1;
+}
+
+double calculate_median(long long *numbers, long long n)
+{
+    // супер-тривиальное нахождение медианы
+    if (n % 2 == 1)
+        return numbers[n / 2];
+    else
+        return (numbers[n / 2] + numbers[n / 2 - 1]) / 2.0;
+}
+
+long long calculate_mode(long long *numbers, long long n)
+{
+    // функция для подсчёта моды
+    // на вход обязательно отсортированный по возрастанию массив
+    // работает по подотрезкам одинаковых значений
+    long long mode = numbers[0];
+    long long maxSublistLen = 1;
+    long long currentSublistLen = 1;
+
+    for (long long i = 1; i < n; i++)
+    {
+        if (numbers[i] == numbers[i - 1])
+            currentSublistLen++;
+        else
+            currentSublistLen = 1;
+
+        if (currentSublistLen > maxSublistLen) // строгое неравенство, т.к. цель оставить минимальную моду по значению
+        {
+            maxSublistLen = currentSublistLen;
+            mode = numbers[i];
+        }
+    }
+
+    return mode;
 }
 
 int compareInts(const void *a, const void *b)
@@ -154,43 +171,10 @@ int main()
 
         double mean = (double)summa / n; // вычисление ср.знач
 
-        qsort(numbers, n, sizeof(long long), compareInts); // сортировка
+        qsort(numbers, n, sizeof(long long), compareInts); // сортировка по возрастанию
 
-        double median = 0;
-        if (n % 2 == 1)
-        { // проверка длины для медианы
-            median = numbers[n / 2];
-        }
-        else
-        {
-            median = (numbers[n / 2] + numbers[n / 2 - 1]) / 2.0; // ср.знач двух серединных элементов
-        }
-
-        long long mode = numbers[0];
-        long long maxSublistLen = 1;
-        long long currentSublistLen = 1;
-        for (long long i = 1; i < n; i++)
-        {
-            if (numbers[i] == numbers[i - 1])
-            {
-                currentSublistLen++;
-            }
-            else
-            {
-                currentSublistLen = 1;
-            }
-
-            if (currentSublistLen > maxSublistLen)
-            {
-                maxSublistLen = currentSublistLen;
-                mode = numbers[i];
-            }
-            else if (currentSublistLen == maxSublistLen && numbers[i] < mode)
-            {
-                // если та же частота, но число меньше значит обнвить моду
-                mode = numbers[i];
-            }
-        }
+        long long mode = calculate_mode(numbers, n);
+        double median = calculate_median(numbers, n);
 
         fprintf(fout, "Mean: %.2f\n", mean);
         fprintf(fout, "Median: %.2f\n", median);
